@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gonzalez DIP: Ch 7 & 8 — Wavelets & Compression</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Outfit:wght@400;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <!-- 3D Canvas Background -->
+    <div id="canvas-container"></div>
+
+    <!-- UI Overlay -->
+    <div class="ui-overlay">
+      <header>
+        <h1 id="main-title">Multiresolution & Compression</h1>
+        <p id="main-subtitle">Gonzalez Digital Image Processing — Chapters 7 & 8</p>
+      </header>
+
+      <!-- Chapter Tab Switcher -->
+      <nav class="chapter-tabs">
+        <button class="tab-btn active" data-tab="wavelet">Ch 7: DWT Subbands</button>
+        <button class="tab-btn" data-tab="pyramid">Ch 7: Image Pyramids</button>
+        <button class="tab-btn" data-tab="compress">Ch 8: Compression</button>
+      </nav>
+
+      <!-- Shared Image Upload -->
+      <section class="glass-panel upload-section">
+        <div class="image-upload-wrapper">
+          <label for="imageUpload" class="upload-btn">Upload Source Image</label>
+          <p class="upload-note">Grayscale conversion applied automatically (textbook standard).</p>
+          <input type="file" id="imageUpload" accept="image/png, image/jpeg, image/webp" />
+          <div class="preview-container">
+            <img id="imagePreview" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" alt="Preview" />
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════ TAB 1: DWT Subbands (Ch 7) ═══════════ -->
+      <section class="glass-panel tab-content active" id="tab-wavelet">
+        <h2>Wavelet Family</h2>
+        <div class="button-group row-group">
+          <button id="btn-haar" class="active">Haar</button>
+          <button id="btn-db4">Db4</button>
+        </div>
+
+        <h2>Decomposition Level</h2>
+        <div class="button-group">
+          <button id="btn-orig" class="active">Original Image</button>
+          <button id="btn-lvl1">Level 1 DWT</button>
+          <button id="btn-lvl2">Level 2 DWT</button>
+        </div>
+
+        <div class="slider-control">
+          <label>3D Subband Explosion <span id="explode-val">0%</span></label>
+          <input type="range" id="explodeSlider" min="0" max="150" value="0">
+        </div>
+
+        <div class="controls-divider"></div>
+
+        <h2>Inverse DWT — Lossy Reconstruction</h2>
+        <div class="slider-control">
+          <label>Coefficient Threshold (ε) <span id="thresh-val">0</span></label>
+          <input type="range" id="threshSlider" min="0" max="80" value="0">
+        </div>
+        <button id="btn-recon" class="action-btn pink">▶ Reconstruct from Thresholded Subbands</button>
+        <div class="metrics-row" id="recon-metrics" style="display:none;">
+          <div class="metric"><span class="metric-label">PSNR</span><span class="metric-value" id="metric-psnr">—</span></div>
+          <div class="metric"><span class="metric-label">Zeroed Coefficients</span><span class="metric-value" id="metric-zeroed">—</span></div>
+        </div>
+
+        <!-- Subband Energy Bar Chart -->
+        <div class="controls-divider"></div>
+        <h2>Subband Energy Distribution</h2>
+        <canvas id="energy-chart" width="340" height="120"></canvas>
+      </section>
+
+      <!-- ═══════════ TAB 2: Image Pyramids (Ch 7) ═══════════ -->
+      <section class="glass-panel tab-content" id="tab-pyramid">
+        <h2>Pyramid Type</h2>
+        <div class="button-group row-group">
+          <button id="btn-gauss" class="active">Gaussian</button>
+          <button id="btn-laplace">Laplacian</button>
+        </div>
+
+        <h2>Display Levels</h2>
+        <div class="button-group">
+          <button id="btn-pyr-all" class="active">All Levels (Stacked 3D)</button>
+          <button id="btn-pyr-0">Level 0 — Original</button>
+          <button id="btn-pyr-1">Level 1 — ½ Scale</button>
+          <button id="btn-pyr-2">Level 2 — ¼ Scale</button>
+          <button id="btn-pyr-3">Level 3 — ⅛ Scale</button>
+        </div>
+
+        <div class="slider-control">
+          <label>3D Stack Height <span id="pyr-height-val">100%</span></label>
+          <input type="range" id="pyrHeightSlider" min="10" max="200" value="100">
+        </div>
+      </section>
+
+      <!-- ═══════════ TAB 3: Compression (Ch 8) ═══════════ -->
+      <section class="glass-panel tab-content" id="tab-compress">
+        <h2>Compression Method</h2>
+        <div class="button-group">
+          <button id="btn-huffman" class="active">Huffman Coding</button>
+          <button id="btn-rle">Run-Length Encoding</button>
+          <button id="btn-wavelet-compress">Wavelet Lossy (JPEG2000)</button>
+        </div>
+
+        <!-- Huffman Section -->
+        <div id="huffman-section" class="compress-section">
+          <h2>Intensity Histogram</h2>
+          <canvas id="histogram-canvas" width="340" height="100"></canvas>
+          <div class="metrics-row">
+            <div class="metric"><span class="metric-label">Original Size</span><span class="metric-value" id="huff-orig">—</span></div>
+            <div class="metric"><span class="metric-label">Huffman Size</span><span class="metric-value" id="huff-comp">—</span></div>
+            <div class="metric"><span class="metric-label">Ratio</span><span class="metric-value" id="huff-ratio">—</span></div>
+            <div class="metric"><span class="metric-label">Entropy H(z)</span><span class="metric-value" id="huff-entropy">—</span></div>
+          </div>
+          <h2>Top Huffman Codes</h2>
+          <div id="huffman-table" class="code-table"></div>
+        </div>
+
+        <!-- RLE Section -->
+        <div id="rle-section" class="compress-section" style="display:none;">
+          <h2>Binary Threshold</h2>
+          <div class="slider-control">
+            <label>Binarization Threshold <span id="rle-thresh-val">128</span></label>
+            <input type="range" id="rleThreshSlider" min="0" max="255" value="128">
+          </div>
+          <div class="metrics-row">
+            <div class="metric"><span class="metric-label">Original Pixels</span><span class="metric-value" id="rle-orig">—</span></div>
+            <div class="metric"><span class="metric-label">RLE Runs</span><span class="metric-value" id="rle-runs">—</span></div>
+            <div class="metric"><span class="metric-label">Ratio</span><span class="metric-value" id="rle-ratio">—</span></div>
+          </div>
+        </div>
+
+        <!-- Wavelet Lossy Section -->
+        <div id="wavelet-compress-section" class="compress-section" style="display:none;">
+          <div class="slider-control">
+            <label>Quality (Threshold) <span id="wc-thresh-val">0</span></label>
+            <input type="range" id="wcThreshSlider" min="0" max="100" value="0">
+          </div>
+          <button id="btn-wc-apply" class="action-btn pink">▶ Compress & Reconstruct</button>
+          <div class="metrics-row">
+            <div class="metric"><span class="metric-label">PSNR</span><span class="metric-value" id="wc-psnr">—</span></div>
+            <div class="metric"><span class="metric-label">Zeroed %</span><span class="metric-value" id="wc-zeroed">—</span></div>
+            <div class="metric"><span class="metric-label">Effective Ratio</span><span class="metric-value" id="wc-ratio">—</span></div>
+          </div>
+        </div>
+      </section>
+
+      <canvas id="hidden-canvas" style="display:none;"></canvas>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loader" class="loader active">
+      <div class="spinner"></div>
+      <p>Initializing Transforms...</p>
+    </div>
+
+    <script type="module" src="/main.js"></script>
+  </body>
+</html>
